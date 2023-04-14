@@ -53,9 +53,11 @@ class Spider(scrapy.Spider):
             'url': response.url,
             'name': response.css('.container h1::text').get(),
             'description': self._extract_product_description(response),
-            'sku': response.css('.detail-info span[itemprop="mpn"]::text').get(),
+            'sku': (response.css('.detail-info span[itemprop="mpn"]::text').get()),
             'price': (
-                response.css('.detail-info meta[itemprop="price"]::attr(content)').get()
+                response.css(
+                    '.detail-info meta[itemprop="price"]::attr(content)'
+                ).re_first(r'\d+')
             ),
             'old_price': re.sub(
                 r'[^\d]+', '', response.css('.detail-info .old-price::text').get('')
