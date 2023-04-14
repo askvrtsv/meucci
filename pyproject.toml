@@ -1,0 +1,10 @@
+[tool.bandit]
+exclude_dirs = [".venv", "tests"]
+
+[tool.black]
+line-length = 88
+skip-string-normalization = true
+
+[tool.isort]
+atomic = true
+profile = "black"
