@@ -46,6 +46,18 @@ class Spider(scrapy.Spider):
         self.crawler.stats.inc_value('xxx/products', len(product_urls))
 
     def parse_product(self, response: HtmlResponse):
+        attributes = self._extract_product_attributes(response)
+        material = attributes.get('Состав', '')
+        material_info = {}
+        for part in material.split('. '):
+            try:
+                name, value = part.split(': ', 1)
+            except ValueError:
+                name, value = '', part
+            material_info[name.strip()] = value.strip()
+
+        insulation = material_info.pop('Утеплитель', '')
+
         yield {
             'path': '>'.join(
                 response.css('.breadcrumb span[property="name"]::text').getall()[2:]
@@ -68,8 +80,14 @@ class Spider(scrapy.Spider):
             'image': response.urljoin(
                 response.css('.slide source::attr(srcset)').get()
             ),
-            'attributes': self._extract_product_attributes(response),
+            'attributes': '\n'.join(
+                ': '.join([name, value]) for name, value in attributes.items()
+            ),
             'promos': response.css('.detail-info .badge-sale::text').get(),
+            'material': '\n'.join(
+                ': '.join(x) if x[0] else x[1] for x in material_info.items()
+            ),
+            'insulation': insulation,
         }
 
     @staticmethod
@@ -86,12 +104,10 @@ class Spider(scrapy.Spider):
     @staticmethod
     def _extract_product_attributes(response: HtmlResponse) -> str:
         attributes = {}
-
         for attribute in response.css('.detail-info .props .prop'):
             name = attribute.css('.title::text').get('').strip().rstrip(':')
             if name == 'Перейти в категорию':
                 continue
             value = attribute.css('.value::text').get('').strip()
             attributes[name] = value
-
-        return '\n'.join(': '.join([name, value]) for name, value in attributes.items())
+        return attributes
